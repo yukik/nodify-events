@@ -144,21 +144,26 @@ define(function () {
   EventEmitter.prototype.emit = function emit (event) {
     init(this);
     var events = this._events[event];
-    var args = [].slice.call(arguments);
+    var args = [].slice.call(arguments, 1);
     var self = this;
-    args.shift();
-    if (events) {
-      var ls = [];
-      events.forEach(function (listener) {
-        if (typeof listener === 'function') {
-          listener.apply(self, args);
-          ls.push(listener);
-        } else {
-          listener.listener.apply(self, args);
-        }
-      });
-      this._events[event] = ls;
+    if (!events) {
+      if (event === 'error') {
+        var err = new Error('Uncaught, unspecified "error" event.');
+        throw err;
+      }
+      return false;
     }
+    var ls = [];
+    events.forEach(function (listener) {
+      if (typeof listener === 'function') {
+        listener.apply(self, args);
+        ls.push(listener);
+      } else {
+        listener.listener.apply(self, args);
+      }
+    });
+    this._events[event] = ls;
+    return true;
   };
 
   /**
@@ -180,7 +185,7 @@ define(function () {
    * @param  {EventEmitter} emitter
    */
   function init (emitter) {
-    if (!emitter.hasOwnProperty('_events')) {
+    if (typeof emitter._events !== 'object') {
       emitter._events = {};
     }
   }
